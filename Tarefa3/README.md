@@ -1,4 +1,4 @@
-# Tarefa: 3
+# Tarefa 3
 
 ## Implemente as fórmulas Fechadas e Abertas da Aula#7 
 bem como as fórmulas que você desenvolveu para polinômios de substituição de grau 4 (Fechada e Aberta) e teste os
