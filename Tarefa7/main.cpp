@@ -20,13 +20,14 @@ int main() {
         double epilson;
         cout << "Escreva o valor do erro:";
         cin >> epilson;
-        cout << "Escolha a abordagem desejada:\n";
-        cout << "1: Abordagem Aberta" << endl;
-        cout << "2: Abordagem Fechada" << endl;
-        cout << "3: Gauss Legendre" << endl;
-        int metodo;
+        cout << "Usaremos o metodo de Gauss Legendre\n";
+        cout << "Escolha o grau desejado:\n";
+        cout << "2: grau 2" << endl;
+        cout << "3: grau 3" << endl;
+        cout << "4: grau4" << endl;
+        int grau;
         cout << "Digite o número da abordagem que voce quer escolher" << endl;
-        cin >> metodo;
+        cin >> grau;
 
         cout << "Escolha o problema desejado:\n";
         cout << "1: 1 Problema" << endl;
@@ -42,7 +43,7 @@ int main() {
         cout << "Digite o número que vc quiser" << endl;
         cin >> forma;
 
-        integracao(xi, xf, epilson, problema, forma, metodo);
+        integracao(xi, xf, epilson, problema, forma, grau);
 
         cout << "Quer continuar com o programa?\n";
         cout << "1: Sim" << endl;
