@@ -43,7 +43,7 @@ def metodo_da_potencia_regular(A, v0, eps=1e-9, max_iter=1000):
         lambda_novo = np.dot(x1_velho.T, v_novo)
 
         # Verificar a convergência
-        if np.abs(lambda_novo - lambda_antigo) < eps:
+        if np.abs((lambda_novo - lambda_antigo) / lambda_novo) < eps:
             break
 
         # Preparar para a próxima iteração
