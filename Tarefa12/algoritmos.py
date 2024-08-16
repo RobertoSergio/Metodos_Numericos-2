@@ -100,3 +100,174 @@ def metodo_da_potencia_regular(A, v0, eps=1e-9, max_iter=1000):
         v = v_novo
 
     return lambda_novo, x1_velho
+
+
+def matriz_jacobi_baseada_no_elemento_ij_de_R_velha(R, i, j, n, epsilon=1e-9):
+    """
+    Constrói a matriz de Jacobi para zerar o elemento (i, j) de R.
+
+    Parâmetros:
+    R : np.array
+        Matriz onde o elemento (i, j) deve ser zerado.
+    i, j : int
+        Índices para a construção da matriz de Jacobi.
+    n : int
+        Dimensão da matriz R.
+    epsilon : float, opcional
+        Tolerância para considerar o elemento R[i, j] ou R[j, j] como zero. O padrão é 1e-9.
+
+    Retorna:
+    J : np.array
+        Matriz de Jacobi completa para zerar o elemento (i, j) de R.
+    """
+
+    J = np.eye(n)  # Matriz identidade
+
+    # Se o elemento R[i, j] é suficientemente pequeno para ser considerado zero
+    if np.abs(R[i, j]) <= epsilon:
+        return J  # Retorna a matriz identidade
+
+    # Se o elemento R[j, j] for muito pequeno
+    if np.abs(R[j, j]) <= epsilon:
+        if R[i, j] < 0:  # O numerador será positivo e assumimos tangente tende a +inf
+            theta = np.pi / 2  # 90 graus
+        else:  # O numerador será negativo e assumimos tangente tende a -inf
+            theta = -np.pi / 2  # -90 graus
+    else:
+        # Se R[j, j] não é pequeno, calcula o ângulo normalmente
+        theta = np.arctan2(-R[i, j], R[j, j])
+
+    cos_t = np.cos(theta)
+    sin_t = np.sin(theta)
+
+    # Constrói a matriz de Jacobi baseada no ângulo calculado
+    J[j, j] = cos_t
+    J[i, i] = cos_t
+    J[i, j] = sin_t
+    J[j, i] = -sin_t
+
+    return J
+
+
+def decomposicao_qr(A):
+    """
+    Realiza a decomposição QR da matriz A.
+
+    Parâmetros:
+    A : np.array
+        Matriz quadrada para ser decomposta.
+
+    Retorna:
+    Q : np.array
+        Matriz ortogonal da decomposição QR.
+    R : np.array
+        Matriz triangular superior da decomposição QR.
+    """
+
+    n = A.shape[0]  # Dimensão de A
+    QT = np.eye(n)  # Inicializa QT como identidade
+    R_velha = A.copy()  # Copia da matriz original
+
+    for j in range(n - 1):  # Loop das colunas
+        for i in range(j + 1, n):  # Loop das linhas
+            # Construção da matriz de Jacobi J_ij
+            J_ij = matriz_jacobi_baseada_no_elemento_ij_de_R_velha(R_velha, i, j, n)
+
+            # Matriz modificada com elemento (i, j) zerado
+            R_nova = np.dot(J_ij, R_velha)
+
+            # Salvar para o próximo passo
+            R_velha = R_nova.copy()
+
+            # Acumular o produto das matrizes de Jacobi
+            QT = np.dot(J_ij, QT)  # QT é a transposta de Q. Note a ordem do produto
+
+    # No final do loop externo, o formato da matriz R_nova é triangular superior
+    Q = QT.T  # Transposta de QT para obter Q
+    R = R_nova
+    return Q, R
+
+
+def metodo_qr(A, epsilon=1e-9, imprimir_iteracao=True):
+    """
+    Método QR para encontrar autovalores e autovetores de uma matriz,
+    seguindo o algoritmo descrito no PDF.
+
+    Parâmetros:
+    A : np.array
+        Matriz quadrada para a qual os autovalores e autovetores serão encontrados.
+    epsilon : float
+        Tolerância para a convergência.
+
+    Retorna:
+    P : np.array
+        Matriz acumulada das transformações de similaridade.
+    Lamb : np.array
+        Vetor com os autovalores da matriz A.
+    A_nova : np.array
+        Matriz diagonal resultante após as iterações do método QR.
+    """
+
+    n = A.shape[0]
+    P = np.eye(n)  # Inicializa a matriz P como a matriz identidade
+    A_velha = A.copy()  # Copia a matriz original
+    val = 100.0  # Escalar para verificar a convergência com a soma dos quadrados dos elementos abaixo da diagonal
+    iteracao = 1
+
+    while val > epsilon:
+        # Decomposição QR (devolve as matrizes Q e R)
+        Q, R = decomposicao_qr(A_velha)
+
+        # Calcula a nova matriz A_nova = RQ
+        A_nova = np.dot(R, Q)
+
+        # Salvar A_nova para a próxima iteração
+        A_velha = A_nova.copy()
+
+        if imprimir_iteracao:
+            # Imprime a matriz após cada iteração (item 1c)
+            print(f"\nIteracao {iteracao}:\n")
+            print(A_nova)
+            iteracao += 1
+
+        # Acumula o produto das matrizes Q
+        P = np.dot(P, Q)
+
+        # Verifica se a matriz A_nova já é diagonal
+        # Soma dos quadrados dos elementos abaixo da diagonal
+        val = np.sum(np.tril(A_nova, -1) ** 2)
+
+    Lamb = np.diag(A_nova)  # Autovalores são os elementos da diagonal de A_nova
+    return P, Lamb, A_nova
+
+
+def verificar_autovetores(A, P, atol=1e-6):
+    """
+    Verifica se as colunas de P são autovetores de A.
+
+    Parâmetros:
+    A : np.array
+        Matriz original.
+    P : np.array
+        Matriz cujas colunas serão testadas como autovetores.
+    atol : float
+        Tolerância absoluta para comparação.
+
+    Retorna:
+    True se todas as colunas de P forem autovetores de A.
+    """
+
+    for i in range(P.shape[1]):
+        v = P[:, i]
+        Av = np.dot(A, v)
+        lambda_v = np.dot(v.T, Av) / np.dot(
+            v.T, v
+        )  # Ajuste na forma de calcular lambda_v
+
+        # Verifica se Av é proporcional a v (considerando sinais opostos)
+        if not (
+            np.allclose(Av, lambda_v * v, atol=atol)
+            or np.allclose(Av, -lambda_v * v, atol=atol)
+        ):
+            return False
+    return True
